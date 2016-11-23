@@ -2,6 +2,7 @@ osquery
 =======
 
 <p align="center">
+<img align="center" src="https://www.gentoo.org/assets/img/logo/gentoo-3d-small.png" alt="Gentoo logo" />
 <img align="center" src="https://osquery.io/assets/logo-dark.png" alt="osquery logo" width="200"/>
 
 <p align="center">
@@ -10,14 +11,11 @@ The tools make low-level operating system analytics and monitoring both performa
 
 | Platform | Build status  | | | |
 |----------|---------------|---|---|---|
-OS X 10.9    | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.9/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.9/) | | **Homepage:** | https://osquery.io
-OS X 10.10/11| [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.11/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.11/) | | **Downloads:** | https://osquery.io/downloads
-CentOS 6.x   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Tables:** | https://osquery.io/tables
 CentOS 7.x   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Packs:** | https://osquery.io/packs
-Ubuntu 12.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu12/) | | **Guide:** | https://osquery.readthedocs.org
-Ubuntu 14.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com) | https://osquery-slack.herokuapp.com
 Ubuntu 16.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/) | | |
-Windows 10 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildWindows10/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildWindows10/) | | |
+
+Which ever CentOS or Ubuntu version of osquery should work fine on Gentoo, as they by default has support for a few portage related tables.
+
 
 #### What is osquery?
 
@@ -73,13 +71,58 @@ These queries can be:
 * executed via a [scheduler](https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/) to monitor operating system state across a set of hosts
 * launched from custom applications using osquery Thrift APIs
 
+#### Gentoo/Funtoo specific tables
+
+```sql
+SELECT * FROM portage_keywords;
+```
+
+| package                      | version    | keyword | mask | unmask |
+|------------------------------|------------|---------|------|--------|
+media-libs/opencv            | 3.0.0      |         | 0    | 1
+app-text/libwpg              | <0.3.0     |         | 1    | 0
+app-emulation/vmware-modules | 308.1.1    | **      | 0    | 1
+
+The portage_keywords will show you the content from /etc/portage/package.keywords, /etc/portage/package.mask and /etc/portage/package.unmask in an unified table, where the column value 1 for mask and unmask tells you that there is a row in one of the files.
+
+```sql
+SELECT * FROM portage_packages;
+```
+
+| package                                     | version                | slot            | build_time | repository | eapi | size       | world |
+|---------------------------------------------|------------------------|-----------------|------------|------------|------|------------|-------|
+app-accessibility/at-spi2-atk               | 2.20.1                 | 2               | 1471705141 | gentoo     | 6    | 522130     | 0
+app-accessibility/at-spi2-core              | 2.20.2                 | 2               | 1471705086 | gentoo     | 6    | 2167640    | 0
+app-admin/apache-tools                      | 2.4.16                 | 0               | 1438541170 | gentoo     | 5    | 474758     | 0
+app-admin/cgmanager                         | 0.41                   | 0               | 1459021806 | gentoo     | 6    | 1566567    | 0
+app-admin/chroot_safe                       | 1.4                    | 0               | 1403809933 | gentoo     | 4    | 18312      | 1
+
+The portage_packages includes all the installed packages and if the package is listed in the /var/lib/portage/world file. Gives you general infromation about the package as version, slot, when it was built, which eapi it used and the size, based on what has been stored in /var/db/pkg.
+
+```sql
+SELECT * FROM portage_use;
+```
+
+| package                        | version | use          |
+|--------------------------------|---------|--------------|
+app-accessibility/at-spi2-atk  | 2.20.1  | abi_x86_32
+app-accessibility/at-spi2-atk  | 2.20.1  | abi_x86_64
+app-accessibility/at-spi2-core | 2.20.2  | X
+app-accessibility/at-spi2-core | 2.20.2  | abi_x86_32
+app-accessibility/at-spi2-core | 2.20.2  | abi_x86_64
+
+The portage_use lists the USE flags enabled when a package was built, based on what has been stored in /var/db/pkg.
+
+NOTE: portage_packages and portage_use can be slow at first time you select from them, as they do loop through directories in /var/db/pkg and reads the files it need to fetch data from. Second time, you will be selecting from a cached version, which makes the select time to be a lot better.
+
+
 #### Downloads / Install
 
 For latest stable and nightly builds for OS X and Linux (deb/rpm), as well as yum and apt repository information visit [https://osquery.io/downloads](https://osquery.io/downloads/). For installation information for FreeBSD, which is supported by the osquery community, see the [wiki](https://osquery.readthedocs.org/en/latest/installation/install-freebsd/).
 
 ##### Building from source
 
-[Building](https://osquery.readthedocs.org/en/latest/development/building/) osquery from source is encouraged! Join our developer community by giving us feedback in Github issues or submitting pull requests!
+[Building](https://osquery.readthedocs.org/en/latest/development/building/) osquery from source is encouraged! Join our developer community by giving us feedback in Github issues or submitting pull requests! There can be some issues to build this on Gentoo/Funtoo as the pip seems to fail on some machines (keep in mind it's not the systems pip but linuxbrews).
 
 #### File Integrity Monitoring (FIM)
 
